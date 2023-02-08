@@ -52,18 +52,23 @@ const UTILS = {
                 let currCol = col + dCol;
                 let tempTilesToFlip = [];
 
+				let add =false;
                 while (currRow >= 0 && currRow < 8 && currCol >= 0 && currCol < 8) {
                     if (board[currRow][currCol] === player) {
+						add = true;
                         break;
                     } else if (board[currRow][currCol] === BOARD.BLANK) {
                         tempTilesToFlip = [];
                         break;
                     } else {
-                        tempTilesToFlip.push([currRow, currCol]);
+                        tempTilesToFlip.push([currCol, currRow]);
                     }
                     currRow += dRow;
                     currCol += dCol;
                 }
+				if(!add) {
+					tempTilesToFlip = [];
+				}
                 tilesToFlip = tilesToFlip.concat(tempTilesToFlip);
                 //console.log("t:" + tempTilesToFlip);
                 //console.log("a:" + tilesToFlip);
