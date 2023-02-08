@@ -37,6 +37,24 @@ let clients = [];
 let currentPlayer = BLACK;
 let nTiles = 4;
 
+function initNewGame(){
+    for (var i = 0; i < BOARD_SIZE; i++) {
+        board[i] = [];
+        for (var j = 0; j < BOARD_SIZE; j++) {
+            board[i][j] = BLANK;
+        }
+    }
+    board[3][3] = WHITE;
+    board[4][4] = WHITE;
+    board[3][4] = BLACK;
+    board[4][3] = BLACK;
+    UTILS.displayBoard(board);
+    nPlayers = 0;
+    clients = [];
+    currentPlayer = BLACK;
+    nTiles = 4;
+}
+
 // Crea il server
 const server = net.createServer(function (socket) {
     console.log('Client connesso: ', socket.remoteAddress, ':', socket.remotePort);
@@ -57,7 +75,12 @@ const server = net.createServer(function (socket) {
 
     // Riceve un messaggio dal client
     socket.on('data', function (data) {
-        data = JSON.parse(data);
+        try{
+            data = JSON.parse(data);
+        }catch(error){
+            console.log('Errore: ', error.message);
+            return;
+        }
         //console.log(data);
         if (data.type == "join") {
             socket.write(
@@ -85,7 +108,8 @@ const server = net.createServer(function (socket) {
                     })
                 );
                 // Verifica se il gioco è finito
-                if (UTILS.gameOver(board, currentPlayer).done) {
+                let gameStatus = UTILS.gameOver(board, currentPlayer);
+                if (gameStatus.done) {
                     clients.forEach(socket => {
                         socket.write(
                             JSON.stringify({
@@ -99,10 +123,23 @@ const server = net.createServer(function (socket) {
 					return;
                 }
 
-                nTiles++;
-                if (nTiles == BOARD.SIZE * BOARD.SIZE) {
-                    console.log(nTiles);
-                    return;
+                if(!gameStatus.fullBoard && !gameStatus.moveExists && !gameStatus.done){
+                    //prova l'altro giocatore
+                    clients.forEach(socket => {
+                        socket.write(
+                            JSON.stringify({
+                                type: 'your_turn',
+                                currentPlayer: currentPlayer,
+                                board: board
+                            })
+                        );
+                    });
+                }else{
+                    nTiles++;
+                    if (nTiles == BOARD.SIZE * BOARD.SIZE) {
+                        console.log(nTiles);
+                        return;
+                    }
                 }
 
                 // Cambia il giocatore corrente
@@ -149,6 +186,7 @@ const server = net.createServer(function (socket) {
     // Chiusura della connessione
     socket.on('close', function () {
         console.log('Connessione chiusa');
+        initNewGame();
     });
 });
 

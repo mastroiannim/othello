@@ -23,7 +23,19 @@ client.connect(NETWORK.SERVER_PORT, NETWORK.SERVER_HOST, function () {
 
 client.on('data', function (data) {
     //console.log('Received: ' + data);
-    var message = JSON.parse(data);
+    var message;
+    try{
+        message = JSON.parse(data);
+    }catch(error){
+        console.log('Errore: ', error.message);
+        client.write(
+            JSON.stringify({
+                type: 'wait_my_turn',
+                player: currentPlayer
+            })
+        );
+        return;
+    }
     var type = message.type;
     if (type === 'your_turn' || type === 'not_valid_move') {
         // receive the current board state

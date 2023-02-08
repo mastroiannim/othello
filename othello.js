@@ -99,32 +99,44 @@ const UTILS = {
                     if (UTILS.isValidMove(board, player, row, col).isValid) {
                         console.log("move exists!");
                         return {
-                            done: false
+                            done: false,
+                            fullBoard: false,
+                            moveExists: true,
+                            msg: "Move exists!"
                         }
                     }
                 }
             }
             console.log("move NOT exists!");
             return {
-                done: true
+                done: false,
+                fullBoard: false,
+                moveExists: false,
+                msg: "Move NOT exists!"
             }
         } else {
             if (blackCount === whiteCount) {
                 console.log("Tie!");
                 return {
                     done: true,
+                    fullBoard: true,
+                    moveExists: false,
                     msg: "Tie"
                 }
             } else if (blackCount > whiteCount) {
                 console.log("Black wins!");
                 return {
                     done: true,
+                    fullBoard: true,
+                    moveExists: false,
                     msg: "Black wins"
                 }
             } else {
                 console.log("White wins!");
                 return {
                     done: true,
+                    fullBoard: true,
+                    moveExists: false,
                     msg: "White wins"
                 }
             }
