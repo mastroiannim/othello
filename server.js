@@ -93,9 +93,10 @@ const server = net.createServer(function (socket) {
                                 winner: currentPlayer
                             })
                         );
-                        socket.destroy();
-                        return;
+                        //socket.destroy();
                     });
+					socket.destroy();
+					return;
                 }
 
                 nTiles++;

@@ -35,7 +35,7 @@ const UTILS = {
     // verifica se la mossa è valida esaminando tutte le otto direzioni  
     // a partire dalla posizione specificata, identifica una serie di tessere 
     // dell'avversario che possono essere capovolte.
-    isValidMove: function (board, player, row, col) {
+    isValidMove: function (board, player, col, row) {
         let tilesToFlip = [];
         //console.log("-");UTILS.displayBoard(board);console.log("-");
         if (board[row][col] !== BOARD.BLANK) {

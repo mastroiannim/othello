@@ -70,15 +70,22 @@ client.on('data', function (data) {
             );
         }
     }else if (type === 'game_over'){
-        if(message.winner == currentPlayer)
+        if(message.winner == currentPlayer){
             console.log('you win');
-        else   
+			client.destroy();
+        }else{   
             console.log('you lose');
+			client.destroy();
+		}
     }
 });
 
 client.on('close', function () {
     console.log('Connection closed');
+});
+
+client.on("error", (error) => {
+	console.log(`Socket Error: ${error.message}`);
 });
 
 const randomMove = (board, player) => {
