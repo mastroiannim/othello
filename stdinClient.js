@@ -17,7 +17,7 @@ client.connect(NETWORK.SERVER_PORT, NETWORK.SERVER_HOST, function () {
 });
 
 client.on('data', function (data) {
-    //console.log('Received: ' + data);
+    console.log('Received: ' + data);
     var message;
     try{
         message = JSON.parse(data);

@@ -10,30 +10,44 @@ const { NETWORK, UTILS, BOARD } = require('./othello.js');
 var net = require('net');
 var client = new net.Socket();
 var board;
+let ackCount = 0;
 
 let blackScore = 0;
 let whiteScore = 0;
 let currentPlayer = null;
 
+function sendTo(socket, obj){
+    while(ackCount != 0){
+        //todo better
+        ackCount = Math.floor(Math.random()*99);
+    }
+    if(ackCount == 0){
+        ackCount++; 
+        socket.write(JSON.stringify(obj));
+        console.log("sendTo:[" + obj.type + "]");
+    }
+}
+
 client.connect(NETWORK.SERVER_PORT, NETWORK.SERVER_HOST, function () {
     console.log('Connected to server');
     // send initial message
-    client.write(JSON.stringify({ type: "join" }));
+    sendTo(client, { type: "join" });
 });
 
 client.on('data', function (data) {
-    //console.log('Received: ' + data);
+    ackCount--;
+    
     var message;
     try{
         message = JSON.parse(data);
+        console.log("on data:["  + message.type + "]");
     }catch(error){
         console.log('Errore: ', error.message);
-        client.write(
-            JSON.stringify({
-                type: 'wait_my_turn',
-                player: currentPlayer
-            })
-        );
+        console.log(data);
+        sendTo(client, {
+            type: 'wait_my_turn',
+            player: currentPlayer
+        });
         return;
     }
     var type = message.type;
@@ -61,25 +75,21 @@ client.on('data', function (data) {
         //var bestMove = alphaBetaPruning(board, 5, -Infinity, Infinity, currentPlayer);
 
         // send the move to the server
-        client.write(
-            JSON.stringify({
-                type: 'move',
-                x: bestMove.x,
-                y: bestMove.y,
-                player: currentPlayer
-            })
-        );
+        sendTo(client, {
+            type: 'move',
+            x: bestMove.x,
+            y: bestMove.y,
+            player: currentPlayer
+        });
     } else if (type === 'valid_move') {
         // receive the current board state
         board = message.board;
         UTILS.displayBoard(board);
         if(message.currentPlayer == currentPlayer){
-            client.write(
-                JSON.stringify({
-                    type: 'wait_my_turn',
-                    player: currentPlayer
-                })
-            );
+            sendTo(client, {
+                type: 'wait_my_turn',
+                player: currentPlayer
+            });
         }
     }else if (type === 'game_over'){
         if(message.winner == currentPlayer){
@@ -89,6 +99,11 @@ client.on('data', function (data) {
             console.log('you lose');
 			client.destroy();
 		}
+    }else{
+        sendTo(client, {
+            type: 'wait_my_turn',
+            player: currentPlayer
+        });
     }
 });
 
@@ -114,14 +129,12 @@ const inputMove = (board, player, client) => {
     // end with a linefeed.  so we (rather crudely) account for that  
     // with toString() and then trim() 
     let dd = d.toString().trim();
-    client.write(
-        JSON.stringify({
-            type: 'move',
-            x: Number.parseInt(dd[0]),
-            y: Number.parseInt(dd[1]),
-            player: player
-        })
-    );
+    sendTo(client, {
+        type: 'move',
+        x: Number.parseInt(dd[0]),
+        y: Number.parseInt(dd[1]),
+        player: player
+    });
   });
 
 };

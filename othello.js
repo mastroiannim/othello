@@ -166,5 +166,18 @@ const NETWORK = {
 }
 
 
+const MSG = {
+    TYPE : {
+        INVALID: 'invalid_type',
+        JOIN:  'join',
+        MOVE: 'move',
+        TURN: 'your_turn',
+        VALID_MOVE: 'valid_move',
+        NOT_VALID_MOVE: 'not_valid_move',
+        ASK_TURN: 'wait_my_turn'
+    }
+}
 
-module.exports = { NETWORK, UTILS, BOARD };
+
+
+module.exports = { NETWORK, UTILS, BOARD, MSG };

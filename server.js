@@ -1,96 +1,184 @@
 //server.js npm init -y
 
-const { NETWORK, UTILS, BOARD } = require('./othello.js');
+const { NETWORK, UTILS, BOARD, MSG } = require('./othello.js');
 const net = require('net');
 
-//rete
-const PORT = NETWORK.SERVER_PORT;
-const HOST = NETWORK.SERVER_HOST;
 
-// Variabili per il gioco
-const BLACK = BOARD.PLAYER_BLACK;
-const WHITE = BOARD.PLAYER_WHITE;
-const BLANK = BOARD.BLANK;
-const BOARD_SIZE = BOARD.SIZE
-
-// Crea un array bidimensionale per rappresentare il tabellone del gioco,
-// e inizializza tutti i valori a BLANK (stringa vuota).
+// stato del server
+let clients = [];
 var board = [];
-for (var i = 0; i < BOARD_SIZE; i++) {
-    board[i] = [];
-    for (var j = 0; j < BOARD_SIZE; j++) {
-        board[i][j] = BLANK;
+let nPlayers = 0;
+let nTiles = 0;
+let currentPlayer = BOARD.PLAYER_BLACK;
+let ackCount = 0;
+
+function sendTo(socket, obj){
+    while(ackCount != 0){
+        //todo better
+        ackCount = Math.floor(Math.random()*99);
+    }
+    if(ackCount == 0){
+        ackCount++; 
+        socket.write(JSON.stringify(obj));
+        //console.log("sendTo:[" + obj.type + "]");
     }
 }
 
-// Imposta le quattro pedine iniziali al centro del tabellone usando i
-// valori WHITE e BLACK definiti nell'enumerazione.
-board[3][3] = WHITE;
-board[4][4] = WHITE;
-board[3][4] = BLACK;
-board[4][3] = BLACK;
-
-UTILS.displayBoard(board);
-
-let nPlayers = 0;
-let clients = [];
-let currentPlayer = BLACK;
-let nTiles = 4;
 
 function initNewGame(){
-    for (var i = 0; i < BOARD_SIZE; i++) {
+    for (var i = 0; i < BOARD.SIZE; i++) {
         board[i] = [];
-        for (var j = 0; j < BOARD_SIZE; j++) {
-            board[i][j] = BLANK;
+        for (var j = 0; j < BOARD.SIZE; j++) {
+            board[i][j] = BOARD.BLANK;
         }
     }
-    board[3][3] = WHITE;
-    board[4][4] = WHITE;
-    board[3][4] = BLACK;
-    board[4][3] = BLACK;
-    UTILS.displayBoard(board);
+    board[3][3] = BOARD.PLAYER_WHITE;
+    board[4][4] = BOARD.PLAYER_WHITE;
+    board[3][4] = BOARD.PLAYER_BLACK;
+    board[4][3] = BOARD.PLAYER_BLACK;
+    nTiles = 4;
     nPlayers = 0;
     clients = [];
-    currentPlayer = BLACK;
-    nTiles = 4;
+    currentPlayer = BOARD.PLAYER_BLACK;
+    UTILS.displayBoard(board);
 }
 
-// Crea il server
-const server = net.createServer(function (socket) {
-    console.log('Client connesso: ', socket.remoteAddress, ':', socket.remotePort);
-    if (nPlayers == 0) {
-        currentPlayer = BLACK;
-    }
-    else if (nPlayers == 1) {
-        currentPlayer = WHITE;
-    }
+function joinServer(socket){
+    if (nPlayers == 0) { currentPlayer = BOARD.PLAYER_BLACK; }
+    else if (nPlayers == 1) { currentPlayer = BOARD.PLAYER_WHITE; }
     else {
         console.log("troppi client");
+        sendTo(socket, { 
+            type: MSG.TYPE.JOIN, 
+            error : "server is full" 
+        });
         socket.destroy();
         return;
     }
     clients[nPlayers] = socket;
     nPlayers++;
     console.log("nPlayers: " + nPlayers);
+    
+    sendTo(socket, {
+        type: MSG.TYPE.TURN,
+        currentPlayer: currentPlayer,
+        board: board
+    });
+}
 
-    // Riceve un messaggio dal client
-    socket.on('data', function (data) {
-        try{
-            data = JSON.parse(data);
-        }catch(error){
-            console.log('Errore: ', data);
-            console.log('Errore: ', error.message);
-            return;
+function validateMove(fromClient){
+    if(fromClient.x == undefined) throw new Error('Missing x in move message');  
+    if(fromClient.y == undefined) throw new Error('Missing x in move message'); 
+    if(fromClient.player == undefined) throw new Error('Missing player in move message'); 
+}
+
+function validateAskTurn(fromClient){
+    if(fromClient.player == undefined) throw new Error('Missing player in move message'); 
+}
+
+function validateData(data){
+    //console.log('validateData data: ', data);
+    ackCount--;
+    let fromClient = null;
+    try{
+        fromClient = JSON.parse(data);
+        if(fromClient.type == undefined){
+            throw new Error('Missing type in message'); 
         }
+        switch (fromClient.type) {
+            case MSG.TYPE.JOIN:
+                break;
+            case MSG.TYPE.MOVE:
+                validateMove(fromClient);
+                break;
+            case MSG.TYPE.ASK_TURN:
+                validateAskTurn(fromClient);
+                break;
+            default:
+                throw new Error('unexpected type: ' + fromClient.type);
+        }
+    }catch(error){
+        console.log('validateData error: ', error.message);
+        console.log(data);
+        fromClient = { 
+            type: MSG.TYPE.INVALID, 
+            error : error.message 
+        };
+    }
+    return fromClient;
+}
+
+function sendInvalidType(socket, data){
+    //send a feedback
+    sendTo(socket, data);
+}
+
+function evalMove(socket, data){
+    let move = UTILS.isValidMove(board, data.player, data.x, data.y);
+    if (move.isValid) {
+        // Aggiorna la board
+        board = UTILS.updateBoard(board, data.player, data.x, data.y, move.tilesToFlip);
+        // Mostra la board
+        UTILS.displayBoard(board);
+        // Invia un messaggio di conferma al client
+        sendTo(socket, {
+            type: MSG.TYPE.VALID_MOVE,
+            currentPlayer: currentPlayer,
+            x: data.x,
+            y: data.y,
+            board: board
+        });
+        // Cambia il giocatore corrente
+        currentPlayer = UTILS.otherPlayer(currentPlayer);
+    }else{
+        //not a valid move
+        // Invia un messaggio di mossa non valida al client
+        sendTo(socket, {
+            type: MSG.TYPE.NOT_VALID_MOVE,
+            currentPlayer: currentPlayer,
+            x: data.x,
+            y: data.y,
+            board: board
+        });
+    }
+}
+
+function changeTurn(socket){
+    UTILS.displayBoard(board);
+    clients.forEach(socket => {
+        sendTo(socket, {
+            type: MSG.TYPE.TURN,
+            currentPlayer: currentPlayer,
+            board: board
+        });
+    });
+}
+
+// Crea il server
+const server = net.createServer(function (socket) {
+    console.log('Client connesso: ', socket.remoteAddress, ':', socket.remotePort);
+    // Riceve un messaggio dal client
+    socket.on('data', function (fromClient) {
+        let data = validateData(fromClient);
+        console.log(data);
+        switch (data.type) {
+            case MSG.TYPE.JOIN:
+                joinServer(socket);
+                break;
+            case MSG.TYPE.MOVE:
+                evalMove(socket, data);
+            case MSG.TYPE.ASK_TURN:
+                changeTurn(socket);
+            default:
+                sendInvalidType(socket, data);
+                break;
+        }
+
+        return;
+        
         //console.log(data);
         if (data.type == "join") {
-            socket.write(
-                JSON.stringify({
-                    type: 'your_turn',
-                    currentPlayer: currentPlayer,
-                    board: board
-                })
-            );
+            joinServer(socket);
         } else if (data.type == "move") {
             // Verifica se la mossa è valida
             let move = UTILS.isValidMove(board, data.player, data.x, data.y);
@@ -193,6 +281,7 @@ const server = net.createServer(function (socket) {
 
 
 // Avvia il server
-server.listen(PORT, function () {
-    console.log('Server in ascolto sulla porta', PORT);
+server.listen(NETWORK.SERVER_PORT, function () {
+    initNewGame();
+    console.log('Server in ascolto sulla porta', NETWORK.SERVER_PORT);
 });
