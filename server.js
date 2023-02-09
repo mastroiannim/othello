@@ -78,6 +78,7 @@ const server = net.createServer(function (socket) {
         try{
             data = JSON.parse(data);
         }catch(error){
+            console.log('Errore: ', data);
             console.log('Errore: ', error.message);
             return;
         }

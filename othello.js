@@ -37,6 +37,15 @@ const UTILS = {
     // dell'avversario che possono essere capovolte.
     isValidMove: function (board, player, col, row) {
         let tilesToFlip = [];
+        try {
+            col = Number.parseInt(col);
+            row = Number.parseInt(row);
+            if(isNaN (col) || isNaN (row) || col < 0 || col >= BOARD.SIZE || row < 0 || row >= BOARD.SIZE){
+                return { isValid: false, tilesToFlip: tilesToFlip };
+            }
+        } catch (error) {
+            return { isValid: false, tilesToFlip: tilesToFlip };
+        }
         //console.log("-");UTILS.displayBoard(board);console.log("-");
         if (board[row][col] !== BOARD.BLANK) {
             return { isValid: false, tilesToFlip: tilesToFlip };
