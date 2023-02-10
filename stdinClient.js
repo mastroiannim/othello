@@ -9,6 +9,9 @@ let blackScore = 0;
 let whiteScore = 0;
 let currentPlayer = null;
 
+process.stdout.write("\u001b[3J\u001b[2J\u001b[1J");
+console.clear();
+
 client.connect(NETWORK.SERVER_PORT, NETWORK.SERVER_HOST, function () {
     console.log('Connected to server');
     var stdin = process.openStdin();
@@ -35,6 +38,7 @@ client.on('data', function (data) {
     if (type === 'your_turn' || type === 'not_valid_move') {
         // receive the current board state
         board = message.board;
+        UTILS.displayBoard(board);
         if(type === 'your_turn') {
             //UTILS.displayBoard(board);
             if(currentPlayer == null){
@@ -47,6 +51,12 @@ client.on('data', function (data) {
                 console.log("client: non your turn!");
                 return;
             }
+        }
+
+        if(currentPlayer != message.currentPlayer){
+            //non your turn
+            console.log("client: non your turn!");
+            return;
         }
 
         var bestMove = inputMove(board, currentPlayer, client);
@@ -102,6 +112,7 @@ const readStdin = function (d){
 }
 var stdin = null;
 const inputMove = (board, player, client) => {
+    console.clear();
     UTILS.displayBoard(board);
     stdin = process.openStdin();
     stdin.addListener("data", readStdin);

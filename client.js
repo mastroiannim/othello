@@ -2,6 +2,8 @@
 
 const { NETWORK, UTILS, BOARD } = require('./othello.js');
 
+process.stdout.write("\u001b[3J\u001b[2J\u001b[1J");
+console.clear();
 
 //In questo esempio, il client si connette al server sulla porta 3000 dell'indirizzo
 //IP 127.0.0.1. Quando riceve un messaggio che indica che è il suo turno, il client
@@ -24,7 +26,7 @@ function sendTo(socket, obj){
     if(ackCount == 0){
         ackCount++; 
         socket.write(JSON.stringify(obj));
-        console.log("sendTo:[" + obj.type + "]");
+        //console.log("sendTo:[" + obj.type + "]");
     }
 }
 
@@ -40,14 +42,14 @@ client.on('data', function (data) {
     var message;
     try{
         message = JSON.parse(data);
-        console.log("on data:["  + message.type + "]");
+        //console.log("on data:["  + message.type + "]");
     }catch(error){
-        console.log('Errore: ', error.message);
-        console.log(data);
-        sendTo(client, {
+        //console.log('Errore: ', error.message);
+        //console.log(data);
+        client.write(JSON.stringify({
             type: 'wait_my_turn',
             player: currentPlayer
-        });
+        }));
         return;
     }
     var type = message.type;
@@ -63,9 +65,14 @@ client.on('data', function (data) {
             }
             else if(currentPlayer != message.currentPlayer){
                 //non your turn
-                console.log("client: non your turn!");
+                //console.log("client: non your turn!");
                 return;
             }
+        }
+        if(currentPlayer != message.currentPlayer){
+            //non your turn
+            console.log("client: non your turn!");
+            return;
         }
 
         // determine the best move using alpha beta pruning
@@ -84,6 +91,7 @@ client.on('data', function (data) {
     } else if (type === 'valid_move') {
         // receive the current board state
         board = message.board;
+        console.clear();
         UTILS.displayBoard(board);
         if(message.currentPlayer == currentPlayer){
             sendTo(client, {
@@ -92,13 +100,17 @@ client.on('data', function (data) {
             });
         }
     }else if (type === 'game_over'){
+        //console.log(message);
         if(message.winner == currentPlayer){
             console.log('you win');
 			client.destroy();
-        }else{   
+        }else if(message.winner == BOARD.BLANK){   
+            console.log('Tie game');
+			client.destroy();
+		}else{
             console.log('you lose');
 			client.destroy();
-		}
+        }
     }else{
         sendTo(client, {
             type: 'wait_my_turn',

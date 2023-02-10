@@ -105,8 +105,9 @@ const UTILS = {
             let player = UTILS.otherPlayer(currentPlayer);
             for (let row = 0; row < BOARD.SIZE; row++) {
                 for (let col = 0; col < BOARD.SIZE; col++) {
-                    if (UTILS.isValidMove(board, player, row, col).isValid) {
-                        console.log("move exists!");
+                    if (UTILS.isValidMove(board, currentPlayer, row, col).isValid) {
+                        console.log("move exists! ");
+                        console.log("player turn: " + currentPlayer);
                         return {
                             done: false,
                             fullBoard: false,
@@ -117,11 +118,16 @@ const UTILS = {
                 }
             }
             console.log("move NOT exists!");
+            console.log("player turn: " + currentPlayer);
+            let win = BOARD.BLANK;
+            if(blackCount > whiteCount) win = BOARD.PLAYER_BLACK;
+            if (whiteCount > blackCount) win = BOARD.PLAYER_WHITE;
             return {
-                done: false,
+                done: true,
                 fullBoard: false,
                 moveExists: false,
-                msg: "Move NOT exists!"
+                msg: "Move NOT exists!",
+                winner: win
             }
         } else {
             if (blackCount === whiteCount) {
@@ -130,7 +136,8 @@ const UTILS = {
                     done: true,
                     fullBoard: true,
                     moveExists: false,
-                    msg: "Tie"
+                    msg: "Tie",
+                    winner: BOARD.BLANK
                 }
             } else if (blackCount > whiteCount) {
                 console.log("Black wins!");
@@ -138,7 +145,8 @@ const UTILS = {
                     done: true,
                     fullBoard: true,
                     moveExists: false,
-                    msg: "Black wins"
+                    msg: "Black wins",
+                    winner: BOARD.PLAYER_BLACK
                 }
             } else {
                 console.log("White wins!");
@@ -146,7 +154,8 @@ const UTILS = {
                     done: true,
                     fullBoard: true,
                     moveExists: false,
-                    msg: "White wins"
+                    msg: "White wins",
+                    winner: BOARD.PLAYER_WHITE
                 }
             }
         }
@@ -174,7 +183,8 @@ const MSG = {
         TURN: 'your_turn',
         VALID_MOVE: 'valid_move',
         NOT_VALID_MOVE: 'not_valid_move',
-        ASK_TURN: 'wait_my_turn'
+        ASK_TURN: 'wait_my_turn',
+        SYN: 'out_of_syn'
     }
 }
 

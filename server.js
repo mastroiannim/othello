@@ -11,21 +11,39 @@ let nPlayers = 0;
 let nTiles = 0;
 let currentPlayer = BOARD.PLAYER_BLACK;
 let ackCount = 0;
+let lastSent;
+
+const timer = ms => new Promise( res => setTimeout(res, ms));
 
 function sendTo(socket, obj){
-    while(ackCount != 0){
+    /*while(ackCount != 0){
         //todo better
         ackCount = Math.floor(Math.random()*99);
-    }
+    }*/
     if(ackCount == 0){
         ackCount++; 
         socket.write(JSON.stringify(obj));
+        lastSent = obj;
         //console.log("sendTo:[" + obj.type + "]");
+    }else{
+        process.stdout.write("\u001b[3J\u001b[2J\u001b[1J");
+        console.clear();
+        UTILS.displayBoard(board);
+        clients.forEach(socket => {
+            socket.write(JSON.stringify({
+                type: MSG.TYPE.TURN,
+                currentPlayer: currentPlayer,
+                board: board
+            }));
+        });
+        //timer(5000).then(_=>sendTo(socket, obj)); 
     }
 }
 
 
 function initNewGame(){
+    process.stdout.write("\u001b[3J\u001b[2J\u001b[1J");
+    console.clear();
     for (var i = 0; i < BOARD.SIZE; i++) {
         board[i] = [];
         for (var j = 0; j < BOARD.SIZE; j++) {
@@ -40,13 +58,14 @@ function initNewGame(){
     nPlayers = 0;
     clients = [];
     currentPlayer = BOARD.PLAYER_BLACK;
+    ackCount = 1;
+    lastSent = null;
     UTILS.displayBoard(board);
 }
 
 function joinServer(socket){
-    if (nPlayers == 0) { currentPlayer = BOARD.PLAYER_BLACK; }
-    else if (nPlayers == 1) { currentPlayer = BOARD.PLAYER_WHITE; }
-    else {
+    let assignedPlayer = BOARD.PLAYER_BLACK;
+    if (nPlayers > 1) {
         console.log("troppi client");
         sendTo(socket, { 
             type: MSG.TYPE.JOIN, 
@@ -58,10 +77,10 @@ function joinServer(socket){
     clients[nPlayers] = socket;
     nPlayers++;
     console.log("nPlayers: " + nPlayers);
-    
+    if(nPlayers == 2) assignedPlayer = BOARD.PLAYER_WHITE
     sendTo(socket, {
         type: MSG.TYPE.TURN,
-        currentPlayer: currentPlayer,
+        currentPlayer: assignedPlayer,
         board: board
     });
 }
@@ -98,8 +117,8 @@ function validateData(data){
                 throw new Error('unexpected type: ' + fromClient.type);
         }
     }catch(error){
-        console.log('validateData error: ', error.message);
-        console.log(data);
+        //console.log('validateData error: ', error.message);
+        //console.log(data);
         fromClient = { 
             type: MSG.TYPE.INVALID, 
             error : error.message 
@@ -115,7 +134,7 @@ function sendInvalidType(socket, data){
 
 function evalMove(socket, data){
     let move = UTILS.isValidMove(board, data.player, data.x, data.y);
-    if (move.isValid) {
+    if (move.isValid && data.player == currentPlayer) {
         // Aggiorna la board
         board = UTILS.updateBoard(board, data.player, data.x, data.y, move.tilesToFlip);
         // Mostra la board
@@ -143,7 +162,7 @@ function evalMove(socket, data){
     }
 }
 
-function changeTurn(socket){
+function changeTurn(){
     UTILS.displayBoard(board);
     clients.forEach(socket => {
         sendTo(socket, {
@@ -154,13 +173,47 @@ function changeTurn(socket){
     });
 }
 
+function testGameOver(){
+    // Verifica se il gioco è finito
+    let gameStatus = UTILS.gameOver(board, currentPlayer);
+    if (gameStatus.done) {
+        clients.forEach(socket => {
+            socket.write(
+                JSON.stringify({
+                    type: 'game_over',
+                    winner: gameStatus.winner
+                })
+            );
+        });
+        return;
+    }
+    if(!gameStatus.fullBoard && !gameStatus.moveExists && !gameStatus.done){
+        //prova l'altro giocatore
+        clients.forEach(socket => {
+            socket.write(
+                JSON.stringify({
+                    type: 'your_turn',
+                    currentPlayer: currentPlayer,
+                    board: board
+                })
+            );
+        });
+    }else{
+        nTiles++;
+        if (nTiles == BOARD.SIZE * BOARD.SIZE) {
+            console.log(nTiles);
+            return;
+        }
+    }
+}
+
 // Crea il server
 const server = net.createServer(function (socket) {
     console.log('Client connesso: ', socket.remoteAddress, ':', socket.remotePort);
     // Riceve un messaggio dal client
     socket.on('data', function (fromClient) {
         let data = validateData(fromClient);
-        console.log(data);
+        //console.log("on data: [" + data.type + "]") ;
         switch (data.type) {
             case MSG.TYPE.JOIN:
                 joinServer(socket);
@@ -168,12 +221,14 @@ const server = net.createServer(function (socket) {
             case MSG.TYPE.MOVE:
                 evalMove(socket, data);
             case MSG.TYPE.ASK_TURN:
-                changeTurn(socket);
+                changeTurn();
+            case MSG.TYPE.SYN:
+                sendTo(socket, lastSent);
             default:
                 sendInvalidType(socket, data);
                 break;
         }
-
+        testGameOver();
         return;
         
         //console.log(data);
@@ -275,7 +330,6 @@ const server = net.createServer(function (socket) {
     // Chiusura della connessione
     socket.on('close', function () {
         console.log('Connessione chiusa');
-        initNewGame();
     });
 });
 
