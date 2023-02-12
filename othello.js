@@ -1,4 +1,19 @@
 const UTILS = {
+    sanitizeData : function (fromClient){
+        let from, to;
+        for(let i=0; i < fromClient.length; i++){
+            //expected JSON
+            if(fromClient[i] == 123) {
+                from = i;
+            }else if(fromClient[i] == 125) {
+                to = i+1;
+                break;
+            }
+        }
+        const sanitized = Buffer.allocUnsafe(to-from);
+        fromClient.copy(sanitized, 0, from, to);
+        return sanitized;
+    },
     otherPlayer: function (player) {
         if (player === BOARD.PLAYER_BLACK) return BOARD.PLAYER_WHITE;
         else if (player === BOARD.PLAYER_WHITE) return BOARD.PLAYER_BLACK;
@@ -20,6 +35,9 @@ const UTILS = {
             );
         }
         console.log("________________________");
+        points = this.getPoints(board);
+        console.log(BOARD.PLAYER_BLACK + ":" + points[BOARD.PLAYER_BLACK]);
+        console.log(BOARD.PLAYER_WHITE + ":" + points[BOARD.PLAYER_WHITE]);
     },
     //esegue la mossa specificata per il giocatore specificato
     updateBoard: function (board, player, col, row, tilesToFlip) {
@@ -85,21 +103,26 @@ const UTILS = {
         }
         return { isValid: tilesToFlip.length > 0, tilesToFlip: tilesToFlip };
     },
-    gameOver: function (board, currentPlayer) {
-        let blackCount = 0;
-        let whiteCount = 0;
-
+    getPoints: function (board){
+        let points = [];
+        points[BOARD.PLAYER_BLACK] = 0;
+        points[BOARD.PLAYER_WHITE] = 0;
         for (let row = 0; row < BOARD.SIZE; row++) {
             for (let col = 0; col < BOARD.SIZE; col++) {
                 if (board[row][col] === BOARD.PLAYER_BLACK) {
-                    blackCount++;
+                    points[BOARD.PLAYER_BLACK]++;
                 } else if (board[row][col] === BOARD.PLAYER_WHITE) {
-                    whiteCount++;
+                    points[BOARD.PLAYER_WHITE]++;
                 }
             }
         }
-        console.log("blackCount: " + blackCount);
-        console.log("whiteCount: " + whiteCount);
+        return points;
+    },
+    gameOver: function (board, currentPlayer) {
+        
+        points = this.getPoints(board);
+        let blackCount = points[BOARD.PLAYER_BLACK]
+        let whiteCount = points[BOARD.PLAYER_WHITE]
         
         if (blackCount + whiteCount < BOARD.SIZE * BOARD.SIZE) {
             let player = UTILS.otherPlayer(currentPlayer);
@@ -122,6 +145,12 @@ const UTILS = {
             let win = BOARD.BLANK;
             if(blackCount > whiteCount) win = BOARD.PLAYER_BLACK;
             if (whiteCount > blackCount) win = BOARD.PLAYER_WHITE;
+            if (blackCount === whiteCount) 
+                console.log("Tie!");
+            else if (blackCount > whiteCount) 
+                console.log("Black wins!");
+            else 
+                console.log("White wins!");
             return {
                 done: true,
                 fullBoard: false,
@@ -183,8 +212,7 @@ const MSG = {
         TURN: 'your_turn',
         VALID_MOVE: 'valid_move',
         NOT_VALID_MOVE: 'not_valid_move',
-        ASK_TURN: 'wait_my_turn',
-        SYN: 'out_of_syn'
+        ASK_TURN: 'wait_my_turn'
     }
 }
 

@@ -42,10 +42,10 @@ client.on('data', function (data) {
     var message;
     try{
         message = JSON.parse(data);
-        //console.log("on data:["  + message.type + "]");
+        console.log("on data:["  + message.type + "]");
     }catch(error){
-        //console.log('Errore: ', error.message);
-        //console.log(data);
+        console.log('Errore: ', error.message);
+        console.log(data);
         client.write(JSON.stringify({
             type: 'wait_my_turn',
             player: currentPlayer
@@ -56,28 +56,13 @@ client.on('data', function (data) {
     if (type === 'your_turn' || type === 'not_valid_move') {
         // receive the current board state
         board = message.board;
-        if(type === 'your_turn') {
-            //UTILS.displayBoard(board);
-            if(currentPlayer == null){
-                //solo la prima volta
-                currentPlayer = message.currentPlayer;
-                console.log("client: " + currentPlayer);
-            }
-            else if(currentPlayer != message.currentPlayer){
-                //non your turn
-                //console.log("client: non your turn!");
-                return;
-            }
+        if(currentPlayer == null){
+            //solo la prima volta
+            currentPlayer = message.currentPlayer;
+            console.log("client: " + currentPlayer);
         }
-        if(currentPlayer != message.currentPlayer){
-            //non your turn
-            console.log("client: non your turn!");
-            return;
-        }
-
         // determine the best move using alpha beta pruning
         var bestMove = randomMove(board, currentPlayer);
-        //var bestMove = inputMove(board, currentPlayer, client);
 
         //var bestMove = alphaBetaPruning(board, 5, -Infinity, Infinity, currentPlayer);
 
@@ -91,7 +76,7 @@ client.on('data', function (data) {
     } else if (type === 'valid_move') {
         // receive the current board state
         board = message.board;
-        console.clear();
+        
         UTILS.displayBoard(board);
         if(message.currentPlayer == currentPlayer){
             sendTo(client, {
@@ -132,23 +117,6 @@ const randomMove = (board, player) => {
         x: Math.floor(Math.random()*8),
         y: Math.floor(Math.random()*8)
     }
-};
-
-const inputMove = (board, player, client) => {
-    var stdin = process.openStdin();
-    stdin.addListener("data", function(d) {
-    // note:  d is an object, and when converted to a string it will
-    // end with a linefeed.  so we (rather crudely) account for that  
-    // with toString() and then trim() 
-    let dd = d.toString().trim();
-    sendTo(client, {
-        type: 'move',
-        x: Number.parseInt(dd[0]),
-        y: Number.parseInt(dd[1]),
-        player: player
-    });
-  });
-
 };
 
 //In questo esempio, il metodo alphaBetaPruning viene utilizzato per valutare la mossa corrente.
