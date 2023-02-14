@@ -63,10 +63,8 @@ client.on('data', function (data) {
         }
         // determine the best move using alpha beta pruning
         //var bestMove = randomMove(board, currentPlayer);
+        var bestMove = alphaBetaPruning(board, 7, -Infinity, Infinity, currentPlayer);
 
-        var bestMove = alphaBetaPruning(board, 1, -Infinity, Infinity, currentPlayer);
-        console.log(bestMove);
-        process.exit();
 
         // send the move to the server
         sendTo(client, {
@@ -126,45 +124,56 @@ const randomMove = (board, player) => {
 //Altrimenti, se il giocatore corrente è il giocatore che minimizza, la funzione restituirà la
 //valutazione minima. L'utilizzo della tecnica di alpha-beta pruning permette di evitare la valutazione
 //di alberi di gioco non utili, migliorando l'efficienza del giocatore automatico.
-const alphaBetaPruning = (board, depth, alpha, beta, maximizingPlayer, i, j) => {
-    console.log(maximizingPlayer);
+const alphaBetaPruning = (board, depth, alpha, beta, maximizingPlayer, i, j, turningPlayer) => {
     
+    if(turningPlayer == undefined)
+        turningPlayer = maximizingPlayer;
+
+    //console.log(turningPlayer);
+
     if (depth === 0 || gameOver(board)) {
-        console.log("depth = 0 || gameOVER");
-        return evaluate(board);
+        let score = evaluate(board);
+        return {
+            player: turningPlayer,
+            x:j,
+            y:i,
+            score: score
+        };
     }
     let toBeRet ={
-        player: currentPlayer,
-        x:i,
-        y:j
+        x:j,
+        y:i,
+        player: turningPlayer
     };
+    
 
-    if (maximizingPlayer == currentPlayer) {
+    if (turningPlayer == BOARD.PLAYER_BLACK) {
         let maxEval = -Infinity;
         for (i = 0; i < 8; i++) {
             for (j = 0; j < 8; j++) {    
-                let move = UTILS.isValidMove(board, maximizingPlayer, i, j);
+                let move = UTILS.isValidMove(board, BOARD.PLAYER_BLACK, j, i);
                 toBeRet.minmax = "MAX";
-                toBeRet.x = i;
-                toBeRet.y = j;
                 toBeRet.score = maxEval;
    
                 if (move.isValid) {
-                    const newBoard = UTILS.updateBoard(board, maximizingPlayer, i, j, move.tilesToFlip);
-                    const eval = alphaBetaPruning(newBoard, depth - 1, alpha, beta, maximizingPlayer, i, j);
-                    console.log(eval);
+                    toBeRet.x = j;
+                    toBeRet.y = i;
+                    //console.log(move);console.log(toBeRet);console.log("VALIDA!");
+                    UTILS.updateBoard(board, turningPlayer, j, i, move.tilesToFlip);
+                    const eval = alphaBetaPruning(board, depth - 1, alpha, beta, BOARD.PLAYER_BLACK, i, j, BOARD.PLAYER_WHITE);
+                    UTILS.revertBoard(board, turningPlayer, j, i, move.tilesToFlip);
+                    //console.log(eval);
                     maxEval = Math.max(maxEval, eval.score);
+                    toBeRet.score = maxEval;
                     //massimizzare alpha
                     alpha = Math.max(alpha, eval.score);
                     if (beta <= alpha) {
-                        console.log(alpha + "/" + beta + " (alpha/beta) massimizzato alpha!");
+                        //console.log(alpha + "/" + beta + " (alpha/beta) massimizzato alpha!");
                         break;
                     }
-                    console.log(toBeRet);
-                    console.log("VALIDA!");
                 }else{
-                    console.log(toBeRet);
-                    console.log("NON VALIDA!");
+                    //console.log(toBeRet);
+                    //console.log("NON VALIDA!");
                 }
             }
         }
@@ -173,27 +182,29 @@ const alphaBetaPruning = (board, depth, alpha, beta, maximizingPlayer, i, j) => 
         let minEval = Infinity;
         for (i = 0; i < 8; i++) {
             for (j = 0; j < 8; j++) {
-                let move = UTILS.isValidMove(board, maximizingPlayer, i, j);
+                let move = UTILS.isValidMove(board, BOARD.PLAYER_WHITE, j, i);
                 toBeRet.minmax = "MIN";
-                toBeRet.x = i;
-                toBeRet.y = j;
                 toBeRet.score = minEval;
                 
                 if (move.isValid) {
-                    const newBoard = UTILS.updateBoard(board, maximizingPlayer, i, j, move.tilesToFlip);
-                    const eval = alphaBetaPruning(newBoard, depth - 1, alpha, beta, maximizingPlayer, i, j);
-                    minEval = Math.min(minEval, eval.eval);
+                    toBeRet.x = j;
+                    toBeRet.y = i;
+                    //console.log(move);console.log(toBeRet);console.log("VALIDA!");
+                    UTILS.updateBoard(board, turningPlayer, j, i, move.tilesToFlip);
+                    const eval = alphaBetaPruning(board, depth - 1, alpha, beta, BOARD.PLAYER_WHITE, i, j, BOARD.PLAYER_BLACK);
+                    UTILS.revertBoard(board, turningPlayer, j, i, move.tilesToFlip);
+                    //console.log(eval);
+                    minEval = Math.min(minEval, eval.score);
+                    toBeRet.score = minEval;
                     //minimizzare beta
-                    beta = Math.min(beta, eval.eval);
+                    beta = Math.min(beta, eval.score);
                     if (beta <= alpha) {
-                        console.log(alpha + "/" + beta + " (alpha/beta) minimizzato beta!");
+                        //console.log(alpha + "/" + beta + " (alpha/beta) minimizzato beta!");
                         break;
                     }
-                    console.log(toBeRet);
-                    console.log("VALIDA!");
                 }else{
-                    console.log(toBeRet);
-                    console.log("NON VALIDA!");
+                    //console.log(toBeRet);
+                    //console.log("NON VALIDA!");
                 }
             }
         }
@@ -213,28 +224,41 @@ function gameOver() {
     return emptySpots == 0 || blackScore + whiteScore == 64;
 }
 
-function evaluate() {
-    let x, y;
+function evaluate(board) {
     let score = 0;
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
             if (board[i][j] == BOARD.PLAYER_BLACK) {
-                score -= (3 * i) + j;
-                x=i;
-                y=j;
+                if((j==0 && i==0)||(j==7 && i ==0)||(j==0 && i==7)||(j==7 && i==7))
+                    score+=100;
+                score += (3 * j) + i;
             } else if (board[i][j] == BOARD.PLAYER_WHITE) {
-                score += (3 * i) + j;
-                x=i;
-                y=j;
+                if((j==0 && i==0)||(j==7 && i ==0)||(j==0 && i==7)||(j==7 && i==7))
+                    score-=100;
+                score -= (3 * i) + j;
             }
         }
     }
-    let toBeRet = {
-        x:x,
-        y:y,
-        score : score
-    };
-    console.log(toBeRet);
-    return toBeRet;
+    return score;
 }
 
+function testAB(){
+    process.stdout.write("\u001b[3J\u001b[2J\u001b[1J");
+    console.clear();
+    board = [];
+    for (var i = 0; i < BOARD.SIZE; i++) {
+        board[i] = [];
+        for (var j = 0; j < BOARD.SIZE; j++) {
+            board[i][j] = BOARD.BLANK;
+        }
+    }
+    board[3][3] = BOARD.PLAYER_WHITE;
+    board[4][4] = BOARD.PLAYER_WHITE;
+    board[3][4] = BOARD.PLAYER_BLACK;
+    board[4][3] = BOARD.PLAYER_BLACK;
+    currentPlayer = BOARD.PLAYER_BLACK;
+    UTILS.displayBoard(board);
+    var bestMove = alphaBetaPruning(board, 2, -Infinity, Infinity, currentPlayer);
+    console.log(bestMove);
+}
+//testAB();

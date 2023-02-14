@@ -50,6 +50,18 @@ const UTILS = {
         //console.log(board);
         return board;
     },
+    //annulla la mossa specificata per il giocatore specificato
+    revertBoard: function (board, player, col, row, tilesToFlip) {
+        //console.log(tilesToFlip);
+        //console.log(player);
+        player = UTILS.otherPlayer(player);
+        board[row][col] = BOARD.BLANK;
+        for (let i = 0; i < tilesToFlip.length; i++) {
+            board[tilesToFlip[i][1]][tilesToFlip[i][0]] = player;
+        }
+        //console.log(board);
+        return board;
+    },
     // verifica se la mossa è valida esaminando tutte le otto direzioni  
     // a partire dalla posizione specificata, identifica una serie di tessere 
     // dell'avversario che possono essere capovolte.
