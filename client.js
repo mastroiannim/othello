@@ -62,9 +62,11 @@ client.on('data', function (data) {
             console.log("client: " + currentPlayer);
         }
         // determine the best move using alpha beta pruning
-        var bestMove = randomMove(board, currentPlayer);
+        //var bestMove = randomMove(board, currentPlayer);
 
-        //var bestMove = alphaBetaPruning(board, 5, -Infinity, Infinity, currentPlayer);
+        var bestMove = alphaBetaPruning(board, 1, -Infinity, Infinity, currentPlayer);
+        console.log(bestMove);
+        process.exit();
 
         // send the move to the server
         sendTo(client, {
@@ -124,44 +126,78 @@ const randomMove = (board, player) => {
 //Altrimenti, se il giocatore corrente è il giocatore che minimizza, la funzione restituirà la
 //valutazione minima. L'utilizzo della tecnica di alpha-beta pruning permette di evitare la valutazione
 //di alberi di gioco non utili, migliorando l'efficienza del giocatore automatico.
-const alphaBetaPruning = (board, depth, alpha, beta, maximizingPlayer) => {
+const alphaBetaPruning = (board, depth, alpha, beta, maximizingPlayer, i, j) => {
+    console.log(maximizingPlayer);
+    
     if (depth === 0 || gameOver(board)) {
+        console.log("depth = 0 || gameOVER");
         return evaluate(board);
     }
+    let toBeRet ={
+        player: currentPlayer,
+        x:i,
+        y:j
+    };
 
     if (maximizingPlayer == currentPlayer) {
         let maxEval = -Infinity;
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
+        for (i = 0; i < 8; i++) {
+            for (j = 0; j < 8; j++) {    
                 let move = UTILS.isValidMove(board, maximizingPlayer, i, j);
+                toBeRet.minmax = "MAX";
+                toBeRet.x = i;
+                toBeRet.y = j;
+                toBeRet.score = maxEval;
+   
                 if (move.isValid) {
-                    const newBoard = updateBoard(board, i, j, maximizingPlayer);
-                    const eval = alphaBetaPruning(newBoard, depth - 1, alpha, beta, UTILS.otherPlayer(currentPlayer));
-                    maxEval = Math.max(maxEval, eval);
-                    alpha = Math.max(alpha, eval);
+                    const newBoard = UTILS.updateBoard(board, maximizingPlayer, i, j, move.tilesToFlip);
+                    const eval = alphaBetaPruning(newBoard, depth - 1, alpha, beta, maximizingPlayer, i, j);
+                    console.log(eval);
+                    maxEval = Math.max(maxEval, eval.score);
+                    //massimizzare alpha
+                    alpha = Math.max(alpha, eval.score);
                     if (beta <= alpha) {
+                        console.log(alpha + "/" + beta + " (alpha/beta) massimizzato alpha!");
                         break;
                     }
+                    console.log(toBeRet);
+                    console.log("VALIDA!");
+                }else{
+                    console.log(toBeRet);
+                    console.log("NON VALIDA!");
                 }
             }
         }
-        return maxEval;
+        return toBeRet;
     } else {
         let minEval = Infinity;
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                if (UTILS.isValidMove(board, maximizingPlayer, i, j)) {
-                    const newBoard = updateBoard(board, i, j, maximizingPlayer);
-                    const eval = alphaBetaPruning(newBoard, depth - 1, alpha, beta, true);
-                    minEval = Math.min(minEval, eval);
-                    beta = Math.min(beta, eval);
+        for (i = 0; i < 8; i++) {
+            for (j = 0; j < 8; j++) {
+                let move = UTILS.isValidMove(board, maximizingPlayer, i, j);
+                toBeRet.minmax = "MIN";
+                toBeRet.x = i;
+                toBeRet.y = j;
+                toBeRet.score = minEval;
+                
+                if (move.isValid) {
+                    const newBoard = UTILS.updateBoard(board, maximizingPlayer, i, j, move.tilesToFlip);
+                    const eval = alphaBetaPruning(newBoard, depth - 1, alpha, beta, maximizingPlayer, i, j);
+                    minEval = Math.min(minEval, eval.eval);
+                    //minimizzare beta
+                    beta = Math.min(beta, eval.eval);
                     if (beta <= alpha) {
+                        console.log(alpha + "/" + beta + " (alpha/beta) minimizzato beta!");
                         break;
                     }
+                    console.log(toBeRet);
+                    console.log("VALIDA!");
+                }else{
+                    console.log(toBeRet);
+                    console.log("NON VALIDA!");
                 }
             }
         }
-        return minEval;
+        return toBeRet;
     }
 };
 
@@ -178,16 +214,27 @@ function gameOver() {
 }
 
 function evaluate() {
+    let x, y;
     let score = 0;
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
-            if (board[i][j] == BLACK) {
+            if (board[i][j] == BOARD.PLAYER_BLACK) {
                 score -= (3 * i) + j;
-            } else if (board[i][j] == WHITE) {
+                x=i;
+                y=j;
+            } else if (board[i][j] == BOARD.PLAYER_WHITE) {
                 score += (3 * i) + j;
+                x=i;
+                y=j;
             }
         }
     }
-    return score;
+    let toBeRet = {
+        x:x,
+        y:y,
+        score : score
+    };
+    console.log(toBeRet);
+    return toBeRet;
 }
 
