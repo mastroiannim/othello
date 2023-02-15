@@ -38,9 +38,9 @@ client.on('data', function (data) {
     if (type === 'your_turn' || type === 'not_valid_move') {
         // receive the current board state
         board = message.board;
-        UTILS.displayBoard(board);
+        UTILS.displayBoard(board, currentPlayer);
         if(type === 'your_turn') {
-            //UTILS.displayBoard(board);
+            //UTILS.displayBoard(board, currentPlayer);
             if(currentPlayer == null){
                 //solo la prima volta
                 currentPlayer = message.currentPlayer;
@@ -68,7 +68,7 @@ client.on('data', function (data) {
 
         // receive the current board state
         board = message.board;
-        UTILS.displayBoard(board);
+        UTILS.displayBoard(board, currentPlayer);
         if(message.currentPlayer == currentPlayer){
             client.write(
                 JSON.stringify({
@@ -113,7 +113,7 @@ const readStdin = function (d){
 var stdin = null;
 const inputMove = (board, player, client) => {
     console.clear();
-    UTILS.displayBoard(board);
+    UTILS.displayBoard(board, currentPlayer);
     stdin = process.openStdin();
     stdin.addListener("data", readStdin);
 

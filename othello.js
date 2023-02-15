@@ -19,7 +19,9 @@ const UTILS = {
         else if (player === BOARD.PLAYER_WHITE) return BOARD.PLAYER_BLACK;
         else throw new Error('Player not allowed!');
     },
-    displayBoard: function (board) {
+    displayBoard: function (board, title) {
+        if(title != undefined)
+            console.log("(" + title + ")");
         console.log("________________________");
         console.log("  0  1  2  3  4  5  6  7");
         for (let i = 0; i < 8; i++) {
@@ -137,23 +139,27 @@ const UTILS = {
         let whiteCount = points[BOARD.PLAYER_WHITE]
         
         if (blackCount + whiteCount < BOARD.SIZE * BOARD.SIZE) {
-            let player = UTILS.otherPlayer(currentPlayer);
-            for (let row = 0; row < BOARD.SIZE; row++) {
-                for (let col = 0; col < BOARD.SIZE; col++) {
-                    if (UTILS.isValidMove(board, currentPlayer, row, col).isValid) {
-                        console.log("move exists! ");
-                        console.log("player turn: " + currentPlayer);
-                        return {
-                            done: false,
-                            fullBoard: false,
-                            moveExists: true,
-                            msg: "Move exists!"
+            const players = [currentPlayer, UTILS.otherPlayer(currentPlayer)];
+            for(let p = 0; p<players.length; p++) {
+                for (let row = 0; row < BOARD.SIZE; row++) {
+                    for (let col = 0; col < BOARD.SIZE; col++) {
+                        if (UTILS.isValidMove(board, players[p], row, col).isValid) {
+                            //console.log("move exists! ");
+                            //console.log("player turn: " + players[p]);
+                            return {
+                                done: false,
+                                fullBoard: false,
+                                moveExists: true,
+                                msg: "Move exists!",
+                                player: players[p]
+                            };
                         }
                     }
                 }
-            }
-            console.log("move NOT exists!");
-            console.log("player turn: " + currentPlayer);
+            }            
+                
+            //console.log("move NOT exists!");
+            //console.log("player turn: " + currentPlayer);
             let win = BOARD.BLANK;
             if(blackCount > whiteCount) win = BOARD.PLAYER_BLACK;
             if (whiteCount > blackCount) win = BOARD.PLAYER_WHITE;
@@ -224,7 +230,8 @@ const MSG = {
         TURN: 'your_turn',
         VALID_MOVE: 'valid_move',
         NOT_VALID_MOVE: 'not_valid_move',
-        ASK_TURN: 'wait_my_turn'
+        ASK_TURN: 'wait_my_turn',
+        GAME_OVER: 'game_over'
     }
 }
 
