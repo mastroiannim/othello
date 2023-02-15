@@ -144,8 +144,8 @@ const UTILS = {
                 for (let row = 0; row < BOARD.SIZE; row++) {
                     for (let col = 0; col < BOARD.SIZE; col++) {
                         if (UTILS.isValidMove(board, players[p], row, col).isValid) {
-                            console.log("move exists! ");
-                            console.log("player turn: " + players[p]);
+                            //console.log("move exists! ");
+                            //console.log("player turn: " + players[p]);
                             return {
                                 done: false,
                                 fullBoard: false,
@@ -158,8 +158,8 @@ const UTILS = {
                 }
             }            
                 
-            console.log("move NOT exists!");
-            console.log("player turn: " + currentPlayer);
+            //console.log("move NOT exists!");
+            //console.log("player turn: " + currentPlayer);
             let win = BOARD.BLANK;
             if(blackCount > whiteCount) win = BOARD.PLAYER_BLACK;
             if (whiteCount > blackCount) win = BOARD.PLAYER_WHITE;

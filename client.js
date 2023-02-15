@@ -61,9 +61,12 @@ client.on('data', function (data) {
             currentPlayer = message.currentPlayer;
             console.log("client: " + currentPlayer);
         }
+
+        if(type == 'your_turn')
+            UTILS.displayBoard(board, currentPlayer);
         // determine the best move using alpha beta pruning
         //var bestMove = randomMove(board, currentPlayer);
-        var bestMove = alphaBetaPruning(board, 5, -Infinity, Infinity, currentPlayer);
+        var bestMove = alphaBetaPruning(board, 7, -Infinity, Infinity, currentPlayer);
 
 
         // send the move to the server
@@ -77,7 +80,7 @@ client.on('data', function (data) {
         // receive the current board state
         board = message.board;
         
-        UTILS.displayBoard(board);
+        UTILS.displayBoard(board, currentPlayer);
         if(message.currentPlayer == currentPlayer){
             sendTo(client, {
                 type: 'wait_my_turn',
@@ -257,7 +260,7 @@ function testAB(){
     board[3][4] = BOARD.PLAYER_BLACK;
     board[4][3] = BOARD.PLAYER_BLACK;
     currentPlayer = BOARD.PLAYER_BLACK;
-    UTILS.displayBoard(board);
+    UTILS.displayBoard(board, currentPlayer);
     var bestMove = alphaBetaPruning(board, 2, -Infinity, Infinity, currentPlayer);
     console.log(bestMove);
 }

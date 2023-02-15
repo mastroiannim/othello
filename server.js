@@ -125,30 +125,45 @@ function sendInvalidType(socket, data){
 
 function evalMove(socket, data){
     let move = UTILS.isValidMove(board, data.player, data.x, data.y);
-    if (move.isValid && data.player == currentPlayer) {
-        // Aggiorna la board
-        board = UTILS.updateBoard(board, data.player, data.x, data.y, move.tilesToFlip);
-
-        // Invia un messaggio di conferma al client
-        sendTo(socket, {
-            type: MSG.TYPE.VALID_MOVE,
-            currentPlayer: currentPlayer,
-            x: data.x,
-            y: data.y,
-            board: board
-        });
-        // Cambia il giocatore corrente
-        //currentPlayer = UTILS.otherPlayer(currentPlayer);
+    if (data.player == currentPlayer) {
+        if(move.isValid){
+            // Aggiorna la board
+            board = UTILS.updateBoard(board, data.player, data.x, data.y, move.tilesToFlip);
+            let gameStatus = UTILS.gameOver(board, UTILS.otherPlayer(currentPlayer));
+            if(!gameStatus.done && gameStatus.moveExists){
+                if(gameStatus.player == currentPlayer){
+                    console.log(gameStatus.msg);
+                    console.log("play again: " + currentPlayer);
+                    sendTo(clients[currentPlayer], {
+                        type: MSG.TYPE.TURN,
+                        currentPlayer: currentPlayer,
+                        board: board
+                    });
+                    return;
+                }
+            }
+            // Invia un messaggio di conferma al client
+            sendTo(socket, {
+                type: MSG.TYPE.VALID_MOVE,
+                currentPlayer: currentPlayer,
+                x: data.x,
+                y: data.y,
+                board: board
+            });
+        }else{
+            //not a valid move
+            // Invia un messaggio di mossa non valida al client
+            sendTo(socket, {
+                type: MSG.TYPE.NOT_VALID_MOVE,
+                currentPlayer: currentPlayer,
+                x: data.x,
+                y: data.y,
+                board: board
+            });
+        }
     }else{
-        //not a valid move
-        // Invia un messaggio di mossa non valida al client
-        sendTo(socket, {
-            type: MSG.TYPE.NOT_VALID_MOVE,
-            currentPlayer: currentPlayer,
-            x: data.x,
-            y: data.y,
-            board: board
-        });
+        //cambia turno
+        console.log("evalMove: not you turn " + currentPlayer);
     }
 }
 
@@ -162,6 +177,7 @@ function changeTurn(){
     UTILS.displayBoard(board);
     // Verifica se il gioco è finito
     let gameStatus = UTILS.gameOver(board, currentPlayer);
+    console.log(gameStatus.msg);
     if (gameStatus.done) {
         Object.keys(clients).forEach(player => {
             ackCount = 0;
@@ -172,16 +188,6 @@ function changeTurn(){
             });
         });
     }else{   
-        if(gameStatus.player != undefined){
-            if(gameStatus.player != currentPlayer){
-                //skip a turn opponent can play
-                sendTo(clients[currentPlayer], {
-                    type: MSG.TYPE.SKIP,
-                    currentPlayer: currentPlayer,
-                    board: board
-                });
-            }
-        }
         sendTo(clients[currentPlayer], {
             type: MSG.TYPE.TURN,
             currentPlayer: currentPlayer,
@@ -197,7 +203,7 @@ const server = net.createServer(function (socket) {
     // Riceve un messaggio dal client
     socket.on('data', function (fromClient) {
         const sanitized = UTILS.sanitizeData(fromClient);
-        console.log(fromClient) ; //https://www.rapidtables.org/it/convert/number/ascii-hex-bin-dec-converter.html
+        //console.log(fromClient) ; //https://www.rapidtables.org/it/convert/number/ascii-hex-bin-dec-converter.html
         console.log("IN <- " + sanitized.toString('utf8'));
         let data = validateData(sanitized);
         switch (data.type) {
@@ -232,5 +238,8 @@ const server = net.createServer(function (socket) {
 // Avvia il server
 server.listen(NETWORK.SERVER_PORT, function () {
     initNewGame();
+    //currentPlayer = BOARD.PLAYER_WHITE;
+    //board = [[" "," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," "],["B","W","W","W","W","W","W","W"],["B","B","W","B","B","W","B","B"],["B","B","B","W","B","B","B","B"],["B","W","W","B","W","B","B","B"],["B","W","B","W","B","B","B","B"],["B","B","B","B","B","B","B","B"]];
+    //board = [[" "," "," "," "," "," "," "," "],[" "," "," "," "," "," "," "," "],[" "," "," "," ","W"," "," "," "],[" "," "," ","W","W","W"," "," "],[" "," "," ","W","W","W","B","W"],["W","W","W","W","W","B","B","B"],["B","W","W","W","B","B","B","B"],["B","B","B","B","B","B","B","B"]];
     console.log('Server in ascolto sulla porta', NETWORK.SERVER_PORT);
 });
