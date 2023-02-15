@@ -63,7 +63,7 @@ client.on('data', function (data) {
         }
         // determine the best move using alpha beta pruning
         //var bestMove = randomMove(board, currentPlayer);
-        var bestMove = alphaBetaPruning(board, 7, -Infinity, Infinity, currentPlayer);
+        var bestMove = alphaBetaPruning(board, 5, -Infinity, Infinity, currentPlayer);
 
 
         // send the move to the server

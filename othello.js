@@ -137,21 +137,27 @@ const UTILS = {
         let whiteCount = points[BOARD.PLAYER_WHITE]
         
         if (blackCount + whiteCount < BOARD.SIZE * BOARD.SIZE) {
-            let player = UTILS.otherPlayer(currentPlayer);
-            for (let row = 0; row < BOARD.SIZE; row++) {
-                for (let col = 0; col < BOARD.SIZE; col++) {
-                    if (UTILS.isValidMove(board, currentPlayer, row, col).isValid) {
-                        console.log("move exists! ");
-                        console.log("player turn: " + currentPlayer);
-                        return {
-                            done: false,
-                            fullBoard: false,
-                            moveExists: true,
-                            msg: "Move exists!"
+            const players = [currentPlayer, UTILS.otherPlayer(currentPlayer)];
+            let player = players[0];
+            for(let p = 0; p<players.length; p++) {
+                player = players[p];
+                for (let row = 0; row < BOARD.SIZE; row++) {
+                    for (let col = 0; col < BOARD.SIZE; col++) {
+                        if (UTILS.isValidMove(board, player, row, col).isValid) {
+                            console.log("move exists! ");
+                            console.log("player turn: " + player);
+                            return {
+                                done: false,
+                                fullBoard: false,
+                                moveExists: true,
+                                msg: "Move exists!",
+                                player: player
+                            };
                         }
                     }
                 }
-            }
+            }            
+                
             console.log("move NOT exists!");
             console.log("player turn: " + currentPlayer);
             let win = BOARD.BLANK;
@@ -224,7 +230,8 @@ const MSG = {
         TURN: 'your_turn',
         VALID_MOVE: 'valid_move',
         NOT_VALID_MOVE: 'not_valid_move',
-        ASK_TURN: 'wait_my_turn'
+        ASK_TURN: 'wait_my_turn',
+        SKIP: 'not_a_move'
     }
 }
 

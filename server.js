@@ -172,6 +172,16 @@ function changeTurn(){
             });
         });
     }else{   
+        if(gameStatus.player != undefined){
+            if(gameStatus.player != currentPlayer){
+                //skip a turn opponent can play
+                sendTo(clients[currentPlayer], {
+                    type: MSG.TYPE.SKIP,
+                    currentPlayer: currentPlayer,
+                    board: board
+                });
+            }
+        }
         sendTo(clients[currentPlayer], {
             type: MSG.TYPE.TURN,
             currentPlayer: currentPlayer,
