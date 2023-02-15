@@ -19,7 +19,9 @@ const UTILS = {
         else if (player === BOARD.PLAYER_WHITE) return BOARD.PLAYER_BLACK;
         else throw new Error('Player not allowed!');
     },
-    displayBoard: function (board) {
+    displayBoard: function (board, title) {
+        if(title != undefined)
+            console.log("(" + title + ")");
         console.log("________________________");
         console.log("  0  1  2  3  4  5  6  7");
         for (let i = 0; i < 8; i++) {
@@ -138,20 +140,18 @@ const UTILS = {
         
         if (blackCount + whiteCount < BOARD.SIZE * BOARD.SIZE) {
             const players = [currentPlayer, UTILS.otherPlayer(currentPlayer)];
-            let player = players[0];
             for(let p = 0; p<players.length; p++) {
-                player = players[p];
                 for (let row = 0; row < BOARD.SIZE; row++) {
                     for (let col = 0; col < BOARD.SIZE; col++) {
-                        if (UTILS.isValidMove(board, player, row, col).isValid) {
+                        if (UTILS.isValidMove(board, players[p], row, col).isValid) {
                             console.log("move exists! ");
-                            console.log("player turn: " + player);
+                            console.log("player turn: " + players[p]);
                             return {
                                 done: false,
                                 fullBoard: false,
                                 moveExists: true,
                                 msg: "Move exists!",
-                                player: player
+                                player: players[p]
                             };
                         }
                     }
