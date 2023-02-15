@@ -231,7 +231,7 @@ const MSG = {
         VALID_MOVE: 'valid_move',
         NOT_VALID_MOVE: 'not_valid_move',
         ASK_TURN: 'wait_my_turn',
-        SKIP: 'not_a_move'
+        GAME_OVER: 'game_over'
     }
 }
 

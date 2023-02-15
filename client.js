@@ -1,13 +1,14 @@
 //client automatico
 
-const { NETWORK, UTILS, BOARD } = require('./othello.js');
-
+const { NETWORK, UTILS, BOARD, MSG} = require('./othello.js');
+const DEPTH = 5;
 process.stdout.write("\u001b[3J\u001b[2J\u001b[1J");
 console.clear();
 
-//In questo esempio, il client si connette al server sulla porta 3000 dell'indirizzo
-//IP 127.0.0.1. Quando riceve un messaggio che indica che è il suo turno, il client
-//utilizza l'algoritmo alpha beta pruning per determinare la mossa più vantaggiosa.
+//In questo esempio, il client si connette al server sulla porta NETWORK.SERVER_PORT
+//all'indirizzo NETWORK.SERVER_HOST. Quando riceve un messaggio che indica che è il 
+//suo turno, il client utilizza l'algoritmo alpha beta pruning per determinare la mossa
+// più vantaggiosa.
 
 var net = require('net');
 var client = new net.Socket();
@@ -33,7 +34,7 @@ function sendTo(socket, obj){
 client.connect(NETWORK.SERVER_PORT, NETWORK.SERVER_HOST, function () {
     console.log('Connected to server');
     // send initial message
-    sendTo(client, { type: "join" });
+    sendTo(client, { type: MSG.TYPE.JOIN });
 });
 
 client.on('data', function (data) {
@@ -47,13 +48,13 @@ client.on('data', function (data) {
         console.log('Errore: ', error.message);
         console.log(data);
         client.write(JSON.stringify({
-            type: 'wait_my_turn',
+            type: MSG.TYPE.ASK_TURN,
             player: currentPlayer
         }));
         return;
     }
     var type = message.type;
-    if (type === 'your_turn' || type === 'not_valid_move') {
+    if (type === MSG.TYPE.TURN || type === MSG.TYPE.NOT_VALID_MOVE) {
         // receive the current board state
         board = message.board;
         if(currentPlayer == null){
@@ -62,32 +63,32 @@ client.on('data', function (data) {
             console.log("client: " + currentPlayer);
         }
 
-        if(type == 'your_turn')
+        if(type == MSG.TYPE.TURN)
             UTILS.displayBoard(board, currentPlayer);
         // determine the best move using alpha beta pruning
         //var bestMove = randomMove(board, currentPlayer);
-        var bestMove = alphaBetaPruning(board, 7, -Infinity, Infinity, currentPlayer);
+        var bestMove = alphaBetaPruning(board, DEPTH, -Infinity, Infinity, currentPlayer);
 
 
         // send the move to the server
         sendTo(client, {
-            type: 'move',
+            type: MSG.TYPE.MOVE,
             x: bestMove.x,
             y: bestMove.y,
             player: currentPlayer
         });
-    } else if (type === 'valid_move') {
+    } else if (type === MSG.TYPE.VALID_MOVE) {
         // receive the current board state
         board = message.board;
         
         UTILS.displayBoard(board, currentPlayer);
         if(message.currentPlayer == currentPlayer){
             sendTo(client, {
-                type: 'wait_my_turn',
+                type: MSG.TYPE.ASK_TURN,
                 player: currentPlayer
             });
         }
-    }else if (type === 'game_over'){
+    }else if (type === MSG.TYPE.GAME_OVER ){
         //console.log(message);
         if(message.winner == currentPlayer){
             console.log('you win');
@@ -101,7 +102,7 @@ client.on('data', function (data) {
         }
     }else{
         sendTo(client, {
-            type: 'wait_my_turn',
+            type: MSG.TYPE.ASK_TURN,
             player: currentPlayer
         });
     }
