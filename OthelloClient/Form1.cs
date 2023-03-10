@@ -19,6 +19,7 @@ namespace OthelloClient
         private string player = "";
         private char[][] board;
         Panel[,] panelMatrix;
+        Panel panriga;
         private int numRows = 8;
         private int numCols = 8;
 
@@ -252,32 +253,36 @@ namespace OthelloClient
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            
+
             int h = panelBoard.Size.Height / numRows;
             int w = panelBoard.Size.Width / numCols;
 
             // Creare e inizializzare ogni pannello nella matrice
             for (int row = 0; row < numRows; row++)
             {
+                panriga = new Panel();
+                panriga.Name = "panriga" + row.ToString();
+                panriga.Dock = DockStyle.Top;
+                panriga.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+                panriga.Size = new System.Drawing.Size(panelBoard.Size.Width, h);
+                panelBoard.Controls.Add(panriga);
+
+
                 for (int col = 0; col < numCols; col++)
                 {
                     panelMatrix[row, col] = new Panel();
-                    panelMatrix[row, col].Tag = (numCols-col-1) + "," + (numRows-row-1);
+
+                    panelMatrix[row, col].Tag = (numCols - col - 1) + "," + (numRows - row - 1);
                     panelMatrix[row, col].Name = "panel_" + row.ToString() + "_" + col.ToString();
                     panelMatrix[row, col].BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+                    //panelMatrix[row, col].BackColor = Color.White;
                     panelMatrix[row, col].AutoSize = false;
                     panelMatrix[row, col].Size = new System.Drawing.Size(w, h);
                     panelMatrix[row, col].Location = new System.Drawing.Point(0, 0);
-                    if (col == 0)
-                    {
-                        panelMatrix[row, col].Dock = DockStyle.Top;
-                        panelBoard.Controls.Add(panelMatrix[row, col]);
-                    }
-                    else
-                    {
-                        panelMatrix[row, col].Dock = DockStyle.Left;
-                        panelMatrix[row, 0].Controls.Add(panelMatrix[row, col]);
-                    }
+
+                    //MessageBox.Show("Colonna " + Convert.ToString(col));
+                    panelMatrix[row, col].Dock = DockStyle.Left;
+                    panriga.Controls.Add(panelMatrix[row, col]);
                     // Aggiungere il pannello al form
                     panelMatrix[row, col].Click += new System.EventHandler(this.Board_Click);
                 }
